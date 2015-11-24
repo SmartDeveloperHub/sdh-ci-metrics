@@ -37,10 +37,10 @@ class Config(object):
 class DevelopmentConfig(Config):
     DEBUG = True
     LOG = logging.DEBUG
-    AGORA = 'http://localhost:9001'
+    PROVIDER = 'localhost'
     REDIS = {
         'host': 'localhost',
-        'db': '5'
+        'db': 5
     }
 
 

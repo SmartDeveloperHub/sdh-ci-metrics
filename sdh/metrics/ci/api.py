@@ -31,27 +31,27 @@ from datetime import datetime
 import math
 
 
-@app.orgmetric('/total-builds', 'sum', 'builds', title='Builds')
+@app.orgmetric('/total-builds', 'sum', 'builds')
 def get_total_builds(**kwargs):
     return [len(store.get_builds())]
 
 
-@app.repometric('/total-repo-builds', 'sum', 'builds', title='Builds')
+@app.repometric('/total-repo-builds', 'sum', 'builds')
 def get_repo_builds(rid, **kwargs):
     return [len(store.get_repo_builds(rid))]
 
 
-@app.orgmetric('/avg-builds', 'avg', 'builds', title='Builds/repo')
+@app.orgmetric('/avg-builds', 'avg', 'builds')
 def get_avg_builds(**kwargs):
     return avg([len(store.get_repo_builds(rid)) for rid in store.get_repositories()])
 
 
-@app.orgmetric('/total-executions', 'sum', 'executions', title='Executions')
+@app.orgmetric('/total-executions', 'sum', 'executions')
 def get_total_executions(**kwargs):
     return aggregate(store, 'metrics:total-jobs', kwargs['begin'], kwargs['end'], kwargs['max'])
 
 
-@app.orgmetric('/total-passed-builds', 'sum', 'passedbuilds', title='Success builds')
+@app.orgmetric('/total-passed-builds', 'sum', 'passedbuilds')
 def get_total_passed_builds(**kwargs):
     success_builds = 0
     for build in store.get_builds():
@@ -61,7 +61,7 @@ def get_total_passed_builds(**kwargs):
     return {}, [success_builds]
 
 
-@app.orgmetric('/total-failed-builds', 'sum', 'failedbuilds', title='Broken builds')
+@app.orgmetric('/total-failed-builds', 'sum', 'failedbuilds')
 def get_total_failed_builds(**kwargs):
     failed_builds = 0
     for build in store.get_builds():
@@ -71,40 +71,40 @@ def get_total_failed_builds(**kwargs):
     return {}, [failed_builds]
 
 
-@app.orgmetric('/total-passed-executions', 'sum', 'passedexecutions', title='Successful executions')
+@app.orgmetric('/total-passed-executions', 'sum', 'passedexecutions')
 def get_total_passed_executions(**kwargs):
     return aggregate(store, 'metrics:total-passed-jobs', kwargs['begin'], kwargs['end'], kwargs['max'])
 
 
-@app.orgmetric('/total-failed-executions', 'sum', 'failedexecutions', title='Broken executions')
+@app.orgmetric('/total-failed-executions', 'sum', 'failedexecutions')
 def get_total_failed_executions(**kwargs):
     return aggregate(store, 'metrics:total-failed-jobs', kwargs['begin'], kwargs['end'], kwargs['max'])
 
 
-@app.repometric('/total-repo-executions', 'sum', 'executions', title='Executions')
+@app.repometric('/total-repo-executions', 'sum', 'executions')
 def get_total_repo_executions(rid, **kwargs):
     return aggregate(store, 'metrics:total-repo-jobs:{}'.format(rid), kwargs['begin'], kwargs['end'], kwargs['max'])
 
 
-@app.repometric('/avg-repo-executions', 'avg', 'executions', title='Executions')
+@app.repometric('/avg-repo-executions', 'avg', 'executions')
 def get_avg_repo_executions(rid, **kwargs):
     return aggregate(store, 'metrics:total-repo-jobs:{}'.format(rid), kwargs['begin'], kwargs['end'], kwargs['max'],
                      aggr=avg)
 
 
-@app.repometric('/total-passed-repo-executions', 'sum', 'passedexecutions', title='Successful executions')
+@app.repometric('/total-passed-repo-executions', 'sum', 'passedexecutions')
 def get_total_passed_repo_executions(rid, **kwargs):
     return aggregate(store, 'metrics:total-passed-repo-jobs:{}'.format(rid), kwargs['begin'], kwargs['end'],
                      kwargs['max'])
 
 
-@app.repometric('/total-failed-repo-executions', 'sum', 'failedexecutions', title='Broken executions')
+@app.repometric('/total-failed-repo-executions', 'sum', 'failedexecutions')
 def get_total_failed_repo_executions(rid, **kwargs):
     return aggregate(store, 'metrics:total-failed-repo-jobs:{}'.format(rid), kwargs['begin'], kwargs['end'],
                      kwargs['max'])
 
 
-@app.repotbd('/repo-build-time', 'buildtime', title='Build time')
+@app.repotbd('/repo-build-time', 'buildtime')
 def get_repo_build_time(rid, **kwargs):
     total = store.get_repo_build_time(rid, begin=kwargs['begin'], end=kwargs['end'])
     if math.isnan(total):
@@ -112,7 +112,7 @@ def get_repo_build_time(rid, **kwargs):
     return [total]
 
 
-@app.orgtbd('/avg-build-time', 'avgbuildtime', title='Build time/repo')
+@app.orgtbd('/avg-build-time', 'avgbuildtime')
 def get_avg_build_time(**kwargs):
     average = avg(
         [store.get_repo_build_time(rid, begin=kwargs['begin'], end=kwargs['end']) for rid in store.get_repositories()])
@@ -121,7 +121,7 @@ def get_avg_build_time(**kwargs):
     return [average]
 
 
-@app.orgtbd('/total-build-time', 'buildtime', title='Build time')
+@app.orgtbd('/total-build-time', 'buildtime')
 def get_total_build_time(**kwargs):
     total = sum(
         [store.get_repo_build_time(rid, begin=kwargs['begin'], end=kwargs['end']) for rid in store.get_repositories()])
@@ -131,12 +131,12 @@ def get_total_build_time(**kwargs):
     return [total]
 
 
-@app.orgtbd('/total-broken-time', 'brokentime', title='Broken time')
+@app.orgtbd('/total-broken-time', 'brokentime')
 def get_total_broken_time(**kwargs):
     return [sum([store.get_broken_time(rid) for rid in store.get_repositories()])]
 
 
-@app.repotbd('/repo-broken-time', 'brokentime', title='Broken time')
+@app.repotbd('/repo-broken-time', 'brokentime')
 def get_repo_broken_time(rid, **kwargs):
     begin = kwargs['begin']
     if begin is None:
@@ -148,7 +148,7 @@ def get_repo_broken_time(rid, **kwargs):
     return {'begin': begin, 'end': end}, [store.get_broken_time(rid, begin=begin, end=end)]
 
 
-@app.repotbd('/repo-time-to-fix', 'timetofix', title='Time to fix')
+@app.repotbd('/repo-time-to-fix', 'timetofix')
 def get_repo_time_to_fix(rid, **kwargs):
     begin = kwargs['begin']
     if begin is None:
@@ -160,7 +160,7 @@ def get_repo_time_to_fix(rid, **kwargs):
     return [store.get_time_to_fix(rid, begin=begin, end=end)]
 
 
-@app.orgtbd('/time-to-fix', 'timetofix', title='Time to fix')
+@app.orgtbd('/time-to-fix', 'timetofix')
 def get_time_to_fix(**kwargs):
     begin = kwargs['begin']
     if begin is None:

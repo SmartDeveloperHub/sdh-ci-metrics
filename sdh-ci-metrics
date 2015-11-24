@@ -37,7 +37,7 @@ ch.setLevel(log_level)
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 logger.setLevel(log_level)
-logger = logging.getLogger('sdh.metrics')
+logger = logging.getLogger('sdh')
 logger.addHandler(ch)
 logger.setLevel(log_level)
 

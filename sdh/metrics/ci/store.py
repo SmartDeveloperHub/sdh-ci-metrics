@@ -32,7 +32,7 @@ import uuid
 
 class CIStore(FragmentStore):
     def __init__(self, redis_conf):
-        super(CIStore, self).__init__(redis_conf['host'], redis_conf['db'])
+        super(CIStore, self).__init__(redis_conf)
 
     def get_repositories(self):
         repo_keys = self.db.keys('frag:repos:-*-:')
