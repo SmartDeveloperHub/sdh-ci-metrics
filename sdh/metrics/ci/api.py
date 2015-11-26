@@ -29,14 +29,14 @@ from sdh.metrics.store.metrics import aggregate, avg
 import calendar
 from datetime import datetime
 import math
-
+from rdflib.namespace import Namespace
 
 @app.orgmetric('/total-builds', 'sum', 'builds')
 def get_total_builds(**kwargs):
     return [len(store.get_builds())]
 
 
-@app.repometric('/total-repo-builds', 'sum', 'builds')
+@app.repometric('/total-repo-builds', 'sum', 'builds', title='Builds')
 def get_repo_builds(rid, **kwargs):
     return [len(store.get_repo_builds(rid))]
 
@@ -104,7 +104,7 @@ def get_total_failed_repo_executions(rid, **kwargs):
                      kwargs['max'])
 
 
-@app.repotbd('/repo-build-time', 'buildtime')
+@app.repometric('/repo-build-time', 'sum', 'buildtime')
 def get_repo_build_time(rid, **kwargs):
     total = store.get_repo_build_time(rid, begin=kwargs['begin'], end=kwargs['end'])
     if math.isnan(total):
@@ -112,7 +112,7 @@ def get_repo_build_time(rid, **kwargs):
     return [total]
 
 
-@app.orgtbd('/avg-build-time', 'avgbuildtime')
+@app.orgmetric('/avg-build-time', 'avg', 'buildtime')
 def get_avg_build_time(**kwargs):
     average = avg(
         [store.get_repo_build_time(rid, begin=kwargs['begin'], end=kwargs['end']) for rid in store.get_repositories()])
@@ -121,7 +121,7 @@ def get_avg_build_time(**kwargs):
     return [average]
 
 
-@app.orgtbd('/total-build-time', 'buildtime')
+@app.orgmetric('/total-build-time', 'sum', 'buildtime')
 def get_total_build_time(**kwargs):
     total = sum(
         [store.get_repo_build_time(rid, begin=kwargs['begin'], end=kwargs['end']) for rid in store.get_repositories()])
@@ -131,12 +131,12 @@ def get_total_build_time(**kwargs):
     return [total]
 
 
-@app.orgtbd('/total-broken-time', 'brokentime')
+@app.orgmetric('/total-broken-time', 'sum', 'brokentime')
 def get_total_broken_time(**kwargs):
     return [sum([store.get_broken_time(rid) for rid in store.get_repositories()])]
 
 
-@app.repotbd('/repo-broken-time', 'brokentime')
+@app.repometric('/repo-broken-time', 'sum', 'brokentime')
 def get_repo_broken_time(rid, **kwargs):
     begin = kwargs['begin']
     if begin is None:
@@ -148,7 +148,7 @@ def get_repo_broken_time(rid, **kwargs):
     return {'begin': begin, 'end': end}, [store.get_broken_time(rid, begin=begin, end=end)]
 
 
-@app.repotbd('/repo-time-to-fix', 'timetofix')
+@app.repometric('/repo-time-to-fix', 'avg', 'timetofix')
 def get_repo_time_to_fix(rid, **kwargs):
     begin = kwargs['begin']
     if begin is None:
@@ -160,7 +160,7 @@ def get_repo_time_to_fix(rid, **kwargs):
     return [store.get_time_to_fix(rid, begin=begin, end=end)]
 
 
-@app.orgtbd('/time-to-fix', 'timetofix')
+@app.orgmetric('/time-to-fix', 'avg', 'timetofix')
 def get_time_to_fix(**kwargs):
     begin = kwargs['begin']
     if begin is None:
@@ -170,3 +170,9 @@ def get_time_to_fix(**kwargs):
         end = calendar.timegm(datetime.now().timetuple())
 
     return [avg([store.get_time_to_fix(rid, begin=begin, end=end) for rid in store.get_repositories()])]
+
+
+@app.productmetric('/total-product-builds', 'sum', 'builds')
+def get_product_builds(prid, **kwargs):
+    repo_ids = store.get_project_repositories(prid)
+    return sum(map(lambda x: len(store.get_repo_builds(x)), repo_ids))

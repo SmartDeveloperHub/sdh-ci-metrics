@@ -37,7 +37,11 @@ class Config(object):
 class DevelopmentConfig(Config):
     DEBUG = True
     LOG = logging.DEBUG
-    PROVIDER = 'localhost'
+    PROVIDER = {
+        'broker_host': 'localhost',
+        'agora_host': 'http://138.4.249.224',
+        'agora_port': 9009
+    }
     REDIS = {
         'host': 'localhost',
         'db': 5
@@ -51,4 +55,9 @@ class ProductionConfig(Config):
     REDIS = {
         'host': 'redis',
         'db': '5'
+    }
+    PROVIDER = {
+        'broker_host': '138.4.249.224',
+        'agora_host': 'http://138.4.249.224',
+        'agora_port': 9009
     }

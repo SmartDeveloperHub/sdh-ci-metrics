@@ -37,6 +37,37 @@ app = MetricsApp(__name__, config)
 st = CIStore(app.config['REDIS'])
 app.store = st
 
+@st.collect('?oh org:hasProduct ?prod')
+def add_product((oh, _, p_uri)):
+    st.execute('sadd', 'frag:products', p_uri)
+
+
+@st.collect('?prod org:id ?prod_id')
+def add_product_id((p_uri, _, pid)):
+    st.execute('set', 'frag:products:{}:'.format(pid.toPython()), p_uri)
+
+
+@st.collect('?oh org:hasProject ?proj')
+def add_project((oh, _, p_uri)):
+    st.execute('sadd', 'frag:projects', p_uri)
+
+
+@st.collect('?proj org:id ?proj_id')
+def add_project_id((p_uri, _, pid)):
+    st.execute('set', 'frag:projects:{}:'.format(pid.toPython()), p_uri)
+    st.execute('hset', 'frag:projects:-{}-:'.format(p_uri), 'name', pid.toPython())
+
+
+@st.collect('?proj doap:repository ?repo')
+def link_project_repo((pr_uri, _, r_uri)):
+    st.execute('sadd', 'frag:projects:-{}-:repos'.format(pr_uri), r_uri)
+
+
+@st.collect('?prod org:relatesToProject ?lproj')
+def add_project((prod_uri, _, proj_uri)):
+    st.execute('sadd', 'frag:products:-{}-:projects'.format(prod_uri), proj_uri)
+    st.execute('sadd', 'frag:projects:-{}-:products'.format(proj_uri), prod_uri)
+
 
 @st.collect('?h ci:hasBuild ?b')
 def add_build((h, _, b_uri)):
@@ -49,10 +80,20 @@ def add_sub_build((p_uri, _, b_uri)):
     st.execute('sadd', 'frag:builds:-{}-:sub'.format(p_uri), b_uri)
 
 
+@st.collect('?sh scm:hasRepository ?r')
+def search_repository(_):
+    pass
+
+
 @st.collect('?r scm:repositoryId ?rid')
 def add_repository_id((r_uri, _, rid)):
     st.execute('hset', 'frag:repos:-{}-:'.format(r_uri), 'id', rid.toPython())
     st.execute('set', 'frag:repos:{}:'.format(rid.toPython()), r_uri)
+
+
+@st.collect('?r scm:location ?rl')
+def add_repository_location((r_uri, _, location)):
+    st.execute('hset', 'frag:repos:-{}-:'.format(r_uri), 'location', location.toPython())
 
 
 @st.collect('?r doap:name ?rn')
@@ -60,20 +101,20 @@ def add_repository((r_uri, _, name)):
     st.execute('hset', 'frag:repos:-{}-:'.format(r_uri), 'name', name.toPython())
 
 
-@st.collect('?b ci:codebase ?cb')
-def link_codebase((b_uri, _, codebase)):
-    codebase = codebase.toPython()
-    if codebase:
-        repo_name = urlparse.urlparse(codebase).path.split('/').pop(-1)
+@st.collect('?e scm:location ?loc')
+def link_location((e_uri, _, location)):
+    location = location.toPython()
+    if location:
+        repo_name = urlparse.urlparse(location).path.split('/').pop(-1)
         repo_name = repo_name.replace('.git', '')
-        st.execute('set', 'frag:builds:-{}-:repo'.format(b_uri), repo_name)
-        st.execute('sadd', 'frag:repos:-{}-:builds'.format(repo_name), b_uri)
+        st.execute('set', 'frag:jobs:-{}-:repo'.format(e_uri), repo_name)
+        st.execute('sadd', 'frag:repos:-{}-:jobs'.format(repo_name), e_uri)
 
 
 @st.collect('?ab ci:hasExecution ?e')
 def add_execution((b_uri, _, e_uri)):
     st.execute('sadd', 'frag:builds:-{}-:jobs'.format(b_uri), e_uri)
-    st.execute('sadd', 'frag:jobs:-{}-:'.format(e_uri), b_uri)
+    st.execute('set', 'frag:jobs:-{}-:'.format(e_uri), b_uri)
 
 
 @st.collect('?e dcterms:created ?et')

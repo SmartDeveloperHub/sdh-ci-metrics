@@ -25,6 +25,7 @@
 __author__ = 'Fernando Serena'
 
 from sdh.metrics.store.fragment import FragmentStore
+from sdh.metrics.store.metrics import flat_sum
 import calendar
 from datetime import datetime
 import uuid
@@ -45,7 +46,10 @@ class CIStore(FragmentStore):
         r_uri = self.db.get('frag:repos:{}:'.format(rid))
         repo_name = self.db.hget('frag:repos:-{}-:'.format(r_uri), 'name')
         try:
-            builds = self.db.smembers('frag:repos:-{}-:builds'.format(repo_name))
+            jobs = self.db.smembers('frag:repos:-{}-:jobs'.format(repo_name))
+            builds = set([])
+            for j_uri in jobs:
+                builds.add(self.db.get('frag:jobs:-{}-:'.format(j_uri)))
             if children:
                 builds.update(set.union(*[self.db.smembers('frag:builds:-{}-:sub'.format(b)) for b in builds]))
             return builds
@@ -190,3 +194,14 @@ class CIStore(FragmentStore):
         if intervals:
             repo_time_to_fix /= float(intervals)
         return repo_time_to_fix
+
+    def get_product_projects(self, prid):
+        product_uri = self.db.get('frag:products:{}:'.format(prid))
+        project_uris = self.db.smembers('frag:products:-{}-:projects'.format(product_uri))
+        return map(lambda x: self.db.hget('frag:projects:-{}-:'.format(x), 'name'), project_uris)
+
+    def get_project_repositories(self, prid):
+        product_uri = self.db.get('frag:products:{}:'.format(prid))
+        project_uris = self.db.smembers('frag:products:-{}-:projects'.format(product_uri))
+        repo_uris = flat_sum(map(lambda x: self.db.smembers('frag:projects:-{}-:repos'.format(x)), project_uris))
+        return map(lambda x: self.db.hget('frag:repos:-{}-:'.format(x), 'id'), repo_uris)
