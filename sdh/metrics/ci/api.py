@@ -25,11 +25,10 @@
 __author__ = 'Fernando Serena'
 
 from sdh.metrics.ci import app, st as store
-from sdh.metrics.store.metrics import aggregate, avg
+from sdh.metrics.store.metrics import aggregate, avg, flat_sum
 import calendar
 from datetime import datetime
 import math
-from rdflib.namespace import Namespace
 
 @app.orgmetric('/total-builds', 'sum', 'builds')
 def get_total_builds(**kwargs):
@@ -174,5 +173,46 @@ def get_time_to_fix(**kwargs):
 
 @app.productmetric('/total-product-builds', 'sum', 'builds')
 def get_product_builds(prid, **kwargs):
+    projects = store.get_product_projects(prid)
+    repo_ids = flat_sum(map(lambda x: store.get_project_repositories(x), projects))
+    return sum(map(lambda x: len(store.get_repo_builds(x)), repo_ids))
+
+
+@app.projectmetric('/total-project-builds', 'sum', 'builds')
+def get_project_builds(prid, **kwargs):
     repo_ids = store.get_project_repositories(prid)
     return sum(map(lambda x: len(store.get_repo_builds(x)), repo_ids))
+
+
+@app.productmetric('/total-product-executions', 'sum', 'executions')
+def get_product_executions(prid, **kwargs):
+    return aggregate(store, 'metrics:total-product-jobs:{}'.format(prid), kwargs['begin'], kwargs['end'], kwargs['max'])
+
+
+@app.projectmetric('/total-project-executions', 'sum', 'executions')
+def get_project_executions(prid, **kwargs):
+    return aggregate(store, 'metrics:total-project-jobs:{}'.format(prid), kwargs['begin'], kwargs['end'], kwargs['max'])
+
+
+@app.productmetric('/total-passed-product-executions', 'sum', 'passedexecutions')
+def get_product_passed_executions(prid, **kwargs):
+    return aggregate(store, 'metrics:total-passed-product-jobs:{}'.format(prid), kwargs['begin'], kwargs['end'],
+                     kwargs['max'])
+
+
+@app.projectmetric('/total-passed-project-executions', 'sum', 'passedexecutions')
+def get_project_passed_executions(prid, **kwargs):
+    return aggregate(store, 'metrics:total-passed-project-jobs:{}'.format(prid), kwargs['begin'], kwargs['end'],
+                     kwargs['max'])
+
+
+@app.productmetric('/total-failed-product-executions', 'sum', 'failedexecutions')
+def get_product_failed_executions(prid, **kwargs):
+    return aggregate(store, 'metrics:total-failed-product-jobs:{}'.format(prid), kwargs['begin'], kwargs['end'],
+                     kwargs['max'])
+
+
+@app.projectmetric('/total-failed-project-executions', 'sum', 'failedexecutions')
+def get_project_failed_executions(prid, **kwargs):
+    return aggregate(store, 'metrics:total-failed-project-jobs:{}'.format(prid), kwargs['begin'], kwargs['end'],
+                     kwargs['max'])

@@ -34,7 +34,7 @@ import urlparse
 config = os.environ.get('CONFIG', 'sdh.metrics.ci.config.DevelopmentConfig')
 
 app = MetricsApp(__name__, config)
-st = CIStore(app.config['REDIS'])
+st = CIStore(**app.config['REDIS'])
 app.store = st
 
 @st.collect('?oh org:hasProduct ?prod')
@@ -45,6 +45,7 @@ def add_product((oh, _, p_uri)):
 @st.collect('?prod org:id ?prod_id')
 def add_product_id((p_uri, _, pid)):
     st.execute('set', 'frag:products:{}:'.format(pid.toPython()), p_uri)
+    st.execute('hset', 'frag:products:-{}-:'.format(p_uri), 'name', pid.toPython())
 
 
 @st.collect('?oh org:hasProject ?proj')
@@ -60,7 +61,9 @@ def add_project_id((p_uri, _, pid)):
 
 @st.collect('?proj doap:repository ?repo')
 def link_project_repo((pr_uri, _, r_uri)):
-    st.execute('sadd', 'frag:projects:-{}-:repos'.format(pr_uri), r_uri)
+    repo_name = urlparse.urlparse(r_uri).path.split('/').pop(-1)
+    st.execute('sadd', 'frag:projects:-{}-:repos'.format(pr_uri),
+               repo_name)
 
 
 @st.collect('?prod org:relatesToProject ?lproj')
@@ -99,6 +102,7 @@ def add_repository_location((r_uri, _, location)):
 @st.collect('?r doap:name ?rn')
 def add_repository((r_uri, _, name)):
     st.execute('hset', 'frag:repos:-{}-:'.format(r_uri), 'name', name.toPython())
+    st.execute('set', 'frag:reponames:{}:'.format(name), r_uri)
 
 
 @st.collect('?e scm:location ?loc')
@@ -162,14 +166,44 @@ def update_interval_jobs(begin, end):
 
 @app.calculus(triggers=['add_execution'])
 def update_interval_repo_metrics(begin, end):
+    totals = {}
+    passed = {}
+    failed = {}
     for rid in st.get_repositories():
         jobs = st.get_jobs(begin, end, rid=rid)
-        store_calc(st, 'metrics:total-repo-jobs:{}'.format(rid), begin, len(jobs))
+        totals[rid] = len(jobs)
+        store_calc(st, 'metrics:total-repo-jobs:{}'.format(rid), begin, totals[rid])
 
         results = [(j, st.db.get('frag:jobs:-{}-:result'.format(j))) for j in jobs]
         verdicts = filter(lambda (_, v): v is not None,
                           [(j, st.db.get('frag:results:-{}-:'.format(r))) for (j, r) in results])
         passed_jobs = [j for (j, v) in verdicts if 'passed' in v]
+        passed[rid] = len(passed_jobs)
         failed_jobs = [j for (j, v) in verdicts if 'failed' in v]
-        store_calc(st, 'metrics:total-passed-repo-jobs:{}'.format(rid), begin, len(passed_jobs))
-        store_calc(st, 'metrics:total-failed-repo-jobs:{}'.format(rid), begin, len(failed_jobs))
+        failed[rid] = len(failed_jobs)
+        store_calc(st, 'metrics:total-passed-repo-jobs:{}'.format(rid), begin, passed[rid])
+        store_calc(st, 'metrics:total-failed-repo-jobs:{}'.format(rid), begin, failed[rid])
+
+    for product in st.get_products():
+        product_total = 0
+        product_passed = 0
+        product_failed = 0
+        projects = st.get_product_projects(product)
+        for project in projects:
+            project_total = 0
+            project_passed = 0
+            project_failed = 0
+            for rid in set.intersection(set(totals.keys()), st.get_project_repositories(project)):
+                project_total += totals[rid]
+                project_passed += passed[rid]
+                project_failed += failed[rid]
+            store_calc(st, 'metrics:total-project-jobs:{}'.format(project), begin, project_total)
+            store_calc(st, 'metrics:total-passed-project-jobs:{}'.format(project), begin, project_passed)
+            store_calc(st, 'metrics:total-failed-project-jobs:{}'.format(project), begin, project_failed)
+            product_total += project_total
+            product_passed += project_passed
+            product_failed += project_failed
+
+        store_calc(st, 'metrics:total-product-jobs:{}'.format(product), begin, product_total)
+        store_calc(st, 'metrics:total-passed-product-jobs:{}'.format(product), begin, product_passed)
+        store_calc(st, 'metrics:total-failed-product-jobs:{}'.format(product), begin, product_failed)
