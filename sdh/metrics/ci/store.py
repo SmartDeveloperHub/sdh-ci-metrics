@@ -32,12 +32,16 @@ import uuid
 
 
 class CIStore(FragmentStore):
-    def __init__(self, redis_conf):
-        super(CIStore, self).__init__(redis_conf)
+    def __init__(self, **kwargs):
+        super(CIStore, self).__init__(**kwargs)
 
     def get_repositories(self):
         repo_keys = self.db.keys('frag:repos:-*-:')
         return filter(lambda x: x is not None, [self.db.hget(rk, 'id') for rk in repo_keys])
+
+    def get_products(self):
+        repo_keys = self.db.keys('frag:products:-*-:')
+        return filter(lambda x: x is not None, [self.db.hget(rk, 'name') for rk in repo_keys])
 
     def get_builds(self):
         return self.db.smembers('frag:builds')
@@ -201,7 +205,7 @@ class CIStore(FragmentStore):
         return map(lambda x: self.db.hget('frag:projects:-{}-:'.format(x), 'name'), project_uris)
 
     def get_project_repositories(self, prid):
-        product_uri = self.db.get('frag:products:{}:'.format(prid))
-        project_uris = self.db.smembers('frag:products:-{}-:projects'.format(product_uri))
-        repo_uris = flat_sum(map(lambda x: self.db.smembers('frag:projects:-{}-:repos'.format(x)), project_uris))
+        project_uri = self.db.get('frag:projects:{}:'.format(prid))
+        repo_names = self.db.smembers('frag:projects:-{}-:repos'.format(project_uri))
+        repo_uris = map(lambda x: self.db.get('frag:reponames:{}:'.format(x)), repo_names)
         return map(lambda x: self.db.hget('frag:repos:-{}-:'.format(x), 'id'), repo_uris)
