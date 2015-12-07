@@ -47,8 +47,15 @@ def _broker_conf(def_host, def_port):
     return {'broker_host': os.environ.get('BROKER_HOST', def_host),
             'broker_port': os.environ.get('BROKER_PORT', def_port)}
 
+
+def _params_conf(def_on_demand_th, def_sync_time):
+    return {'on_demand_threshold': os.environ.get('CURATOR_DEMAND_TH', def_on_demand_th),
+            'min_sync_time': os.environ.get('CURATOR_MIN_SYNC_TIME', def_sync_time)}
+
+
 class Config(object):
     PORT = _api_port()
+    PARAMS = _params_conf(2000, 10)
 
 
 class DevelopmentConfig(Config):

@@ -26,31 +26,33 @@ __author__ = 'Fernando Serena'
 
 from sdh.metrics.ci import app, st as store
 from sdh.metrics.store.metrics import aggregate, avg, flat_sum
+from sdh.metrics.server import SCM, ORG, CI
 import calendar
 from datetime import datetime
 import math
 
-@app.orgmetric('/total-builds', 'sum', 'builds')
+
+@app.metric('/total-builds', id='builds', title='Builds')
 def get_total_builds(**kwargs):
     return [len(store.get_builds())]
 
 
-@app.repometric('/total-repo-builds', 'sum', 'builds', title='Builds')
+@app.metric('/total-repo-builds', id='repository-builds', title='Builds', parameters=[SCM.Repository])
 def get_repo_builds(rid, **kwargs):
     return [len(store.get_repo_builds(rid))]
 
 
-@app.orgmetric('/avg-builds', 'avg', 'builds')
+@app.metric('/avg-builds', aggr='avg', id='builds', title='Builds')
 def get_avg_builds(**kwargs):
     return avg([len(store.get_repo_builds(rid)) for rid in store.get_repositories()])
 
 
-@app.orgmetric('/total-executions', 'sum', 'executions')
+@app.metric('/total-executions', id='executions', title='Executions')
 def get_total_executions(**kwargs):
     return aggregate(store, 'metrics:total-jobs', kwargs['begin'], kwargs['end'], kwargs['max'])
 
 
-@app.orgmetric('/total-passed-builds', 'sum', 'passedbuilds')
+@app.metric('/total-passed-builds', id='passed-builds', title='Builds')
 def get_total_passed_builds(**kwargs):
     success_builds = 0
     for build in store.get_builds():
@@ -60,7 +62,7 @@ def get_total_passed_builds(**kwargs):
     return {}, [success_builds]
 
 
-@app.orgmetric('/total-failed-builds', 'sum', 'failedbuilds')
+@app.metric('/total-failed-builds', id='failed-builds', title='Builds')
 def get_total_failed_builds(**kwargs):
     failed_builds = 0
     for build in store.get_builds():
@@ -70,40 +72,43 @@ def get_total_failed_builds(**kwargs):
     return {}, [failed_builds]
 
 
-@app.orgmetric('/total-passed-executions', 'sum', 'passedexecutions')
+@app.metric('/total-passed-executions', id='passed-executions', title='Executions')
 def get_total_passed_executions(**kwargs):
     return aggregate(store, 'metrics:total-passed-jobs', kwargs['begin'], kwargs['end'], kwargs['max'])
 
 
-@app.orgmetric('/total-failed-executions', 'sum', 'failedexecutions')
+@app.metric('/total-failed-executions', id='failed-executions', title='Executions')
 def get_total_failed_executions(**kwargs):
     return aggregate(store, 'metrics:total-failed-jobs', kwargs['begin'], kwargs['end'], kwargs['max'])
 
 
-@app.repometric('/total-repo-executions', 'sum', 'executions')
+@app.metric('/total-repo-executions', id='repository-executions', title='Executions', parameters=[SCM.Repository])
 def get_total_repo_executions(rid, **kwargs):
     return aggregate(store, 'metrics:total-repo-jobs:{}'.format(rid), kwargs['begin'], kwargs['end'], kwargs['max'])
 
 
-@app.repometric('/avg-repo-executions', 'avg', 'executions')
+@app.metric('/avg-repo-executions', aggr='avg', id='repository-executions', title='Executions',
+            parameters=[SCM.Repository])
 def get_avg_repo_executions(rid, **kwargs):
     return aggregate(store, 'metrics:total-repo-jobs:{}'.format(rid), kwargs['begin'], kwargs['end'], kwargs['max'],
                      aggr=avg)
 
 
-@app.repometric('/total-passed-repo-executions', 'sum', 'passedexecutions')
+@app.metric('/total-passed-repo-executions', id='passed-repository-executions', title='Executions',
+            parameters=[SCM.Repository])
 def get_total_passed_repo_executions(rid, **kwargs):
     return aggregate(store, 'metrics:total-passed-repo-jobs:{}'.format(rid), kwargs['begin'], kwargs['end'],
                      kwargs['max'])
 
 
-@app.repometric('/total-failed-repo-executions', 'sum', 'failedexecutions')
+@app.metric('/total-failed-repo-executions', id='failed-repository-executions', title='Executions',
+            parameters=[SCM.Repository])
 def get_total_failed_repo_executions(rid, **kwargs):
     return aggregate(store, 'metrics:total-failed-repo-jobs:{}'.format(rid), kwargs['begin'], kwargs['end'],
                      kwargs['max'])
 
 
-@app.repometric('/repo-build-time', 'sum', 'buildtime')
+@app.metric('/repo-build-time', id='repository-buildtime', parameters=[SCM.Repository], title='Build time')
 def get_repo_build_time(rid, **kwargs):
     total = store.get_repo_build_time(rid, begin=kwargs['begin'], end=kwargs['end'])
     if math.isnan(total):
@@ -111,7 +116,7 @@ def get_repo_build_time(rid, **kwargs):
     return [total]
 
 
-@app.orgmetric('/avg-build-time', 'avg', 'buildtime')
+@app.metric('/avg-build-time', aggr='avg', id='buildtime', title='Build time')
 def get_avg_build_time(**kwargs):
     average = avg(
         [store.get_repo_build_time(rid, begin=kwargs['begin'], end=kwargs['end']) for rid in store.get_repositories()])
@@ -120,7 +125,7 @@ def get_avg_build_time(**kwargs):
     return [average]
 
 
-@app.orgmetric('/total-build-time', 'sum', 'buildtime')
+@app.metric('/total-build-time', id='buildtime', title='Build time')
 def get_total_build_time(**kwargs):
     total = sum(
         [store.get_repo_build_time(rid, begin=kwargs['begin'], end=kwargs['end']) for rid in store.get_repositories()])
@@ -130,12 +135,12 @@ def get_total_build_time(**kwargs):
     return [total]
 
 
-@app.orgmetric('/total-broken-time', 'sum', 'brokentime')
+@app.metric('/total-broken-time', id='brokentime', title='Broken time')
 def get_total_broken_time(**kwargs):
     return [sum([store.get_broken_time(rid) for rid in store.get_repositories()])]
 
 
-@app.repometric('/repo-broken-time', 'sum', 'brokentime')
+@app.metric('/repo-broken-time', id='repository-brokentime', title='Broken time', parameters=[SCM.Repository])
 def get_repo_broken_time(rid, **kwargs):
     begin = kwargs['begin']
     if begin is None:
@@ -147,7 +152,8 @@ def get_repo_broken_time(rid, **kwargs):
     return {'begin': begin, 'end': end}, [store.get_broken_time(rid, begin=begin, end=end)]
 
 
-@app.repometric('/repo-time-to-fix', 'avg', 'timetofix')
+@app.metric('/repo-time-to-fix', aggr='avg', id='repository-timetofix', title='Time to fix',
+            parameters=[SCM.Repository])
 def get_repo_time_to_fix(rid, **kwargs):
     begin = kwargs['begin']
     if begin is None:
@@ -159,7 +165,7 @@ def get_repo_time_to_fix(rid, **kwargs):
     return [store.get_time_to_fix(rid, begin=begin, end=end)]
 
 
-@app.orgmetric('/time-to-fix', 'avg', 'timetofix')
+@app.metric('/time-to-fix', aggr='avg', id='timetofix', title='Time to fix')
 def get_time_to_fix(**kwargs):
     begin = kwargs['begin']
     if begin is None:
@@ -171,48 +177,76 @@ def get_time_to_fix(**kwargs):
     return [avg([store.get_time_to_fix(rid, begin=begin, end=end) for rid in store.get_repositories()])]
 
 
-@app.productmetric('/total-product-builds', 'sum', 'builds')
+@app.metric('/project-time-to-fix', aggr='avg', id='project-timetofix', title='Time to fix', parameters=[ORG.Project])
+def get_project_time_to_fix(pjid, **kwargs):
+    begin = kwargs['begin']
+    if begin is None:
+        begin = 0
+    end = kwargs['end']
+    if end is None:
+        end = calendar.timegm(datetime.now().timetuple())
+
+    return [avg([store.get_time_to_fix(rid, begin=begin, end=end) for rid in store.get_project_repositories(pjid)])]
+
+
+@app.metric('/product-time-to-fix', aggr='avg', id='product-timetofix', title='Time to fix', parameters=[ORG.Product])
+def get_product_time_to_fix(prid, **kwargs):
+    begin = kwargs['begin']
+    if begin is None:
+        begin = 0
+    end = kwargs['end']
+    if end is None:
+        end = calendar.timegm(datetime.now().timetuple())
+
+    return [avg([store.get_time_to_fix(rid, begin=begin, end=end) for rid in store.get_product_repositories(prid)])]
+
+
+@app.metric('/total-product-builds', id='product-builds', title='Builds', parameters=[ORG.Product])
 def get_product_builds(prid, **kwargs):
     projects = store.get_product_projects(prid)
     repo_ids = flat_sum(map(lambda x: store.get_project_repositories(x), projects))
     return sum(map(lambda x: len(store.get_repo_builds(x)), repo_ids))
 
 
-@app.projectmetric('/total-project-builds', 'sum', 'builds')
-def get_project_builds(prid, **kwargs):
-    repo_ids = store.get_project_repositories(prid)
+@app.metric('/total-project-builds', id='project-builds', title='Builds', parameters=[ORG.Project])
+def get_project_builds(pjid, **kwargs):
+    repo_ids = store.get_project_repositories(pjid)
     return sum(map(lambda x: len(store.get_repo_builds(x)), repo_ids))
 
 
-@app.productmetric('/total-product-executions', 'sum', 'executions')
+@app.metric('/total-product-executions', id='product-executions', title='Executions', parameters=[ORG.Product])
 def get_product_executions(prid, **kwargs):
     return aggregate(store, 'metrics:total-product-jobs:{}'.format(prid), kwargs['begin'], kwargs['end'], kwargs['max'])
 
 
-@app.projectmetric('/total-project-executions', 'sum', 'executions')
+@app.metric('/total-project-executions', id='project-executions', title='Executions', parameters=[ORG.Project])
 def get_project_executions(prid, **kwargs):
     return aggregate(store, 'metrics:total-project-jobs:{}'.format(prid), kwargs['begin'], kwargs['end'], kwargs['max'])
 
 
-@app.productmetric('/total-passed-product-executions', 'sum', 'passedexecutions')
+@app.metric('/total-passed-product-executions', id='passed-product-executions', title='Executions',
+            parameters=[ORG.Product])
 def get_product_passed_executions(prid, **kwargs):
     return aggregate(store, 'metrics:total-passed-product-jobs:{}'.format(prid), kwargs['begin'], kwargs['end'],
                      kwargs['max'])
 
 
-@app.projectmetric('/total-passed-project-executions', 'sum', 'passedexecutions')
+@app.metric('/total-passed-project-executions', id='passed-project-executions', title='Executions',
+            parameters=[ORG.Project])
 def get_project_passed_executions(prid, **kwargs):
     return aggregate(store, 'metrics:total-passed-project-jobs:{}'.format(prid), kwargs['begin'], kwargs['end'],
                      kwargs['max'])
 
 
-@app.productmetric('/total-failed-product-executions', 'sum', 'failedexecutions')
+@app.metric('/total-failed-product-executions', id='failed-product-executions', title='Executions',
+            parameters=[ORG.Product])
 def get_product_failed_executions(prid, **kwargs):
     return aggregate(store, 'metrics:total-failed-product-jobs:{}'.format(prid), kwargs['begin'], kwargs['end'],
                      kwargs['max'])
 
 
-@app.projectmetric('/total-failed-project-executions', 'sum', 'failedexecutions')
+@app.metric('/total-failed-project-executions', id='failed-project-executions', title='Executions',
+            parameters=[ORG.Project])
 def get_project_failed_executions(prid, **kwargs):
     return aggregate(store, 'metrics:total-failed-project-jobs:{}'.format(prid), kwargs['begin'], kwargs['end'],
                      kwargs['max'])

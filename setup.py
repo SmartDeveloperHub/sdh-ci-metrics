@@ -28,14 +28,14 @@ from setuptools import setup, find_packages
 
 setup(
     name="SDH-CI-Metrics",
-    version="0.1.0.alpha1",
+    version="0.2.0",
     author="Fernando Serena",
     author_email="fernando.serena@centeropenmiddleware.com",
     description="A service that calculates a small set of quantitative metrics on data from Jenkins.",
     license="Apache 2",
     keywords=["linked-data", "ontology", "path", "sdh", "metrics"],
     url="https://github.com/smartdeveloperhub/sdh-ci-metrics",
-    download_url="https://github.com/smartdeveloperhub/sdh-ci-metrics/tarball/0.1.0",
+    download_url="https://github.com/smartdeveloperhub/sdh-ci-metrics/tarball/0.2.0",
     packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
     namespace_packages=['sdh', 'sdh.metrics'],
     install_requires=['SDH-Metrics'],
