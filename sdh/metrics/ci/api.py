@@ -108,6 +108,21 @@ def get_total_failed_repo_executions(rid, **kwargs):
                      kwargs['max'])
 
 
+@app.metric('/repository-success-rate', id='repository-success-rate', title='Success rate',
+            parameters=[SCM.Repository])
+def get_repo_executions_success_rate(rid, **kwargs):
+    passed_ctx, passed = aggregate(store, 'metrics:total-passed-repo-jobs:{}'.format(rid), kwargs['begin'],
+                                   kwargs['end'],
+                                   kwargs['max'])
+
+    total_ctx, total = aggregate(store, 'metrics:total-repo-jobs:{}'.format(rid), kwargs['begin'], kwargs['end'],
+                                 kwargs['max'])
+
+    # When there are no executions (t == 0), rate should be equal to 1??
+    rate = [float(r) / float(t) if t else 0 for r, t in zip(passed, total)]
+    return total_ctx, rate
+
+
 @app.metric('/repo-build-time', id='repository-buildtime', parameters=[SCM.Repository], title='Build time')
 def get_repo_build_time(rid, **kwargs):
     total = store.get_repo_build_time(rid, begin=kwargs['begin'], end=kwargs['end'])
