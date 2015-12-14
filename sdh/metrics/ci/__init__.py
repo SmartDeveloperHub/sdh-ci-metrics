@@ -37,39 +37,32 @@ app = MetricsApp(__name__, config)
 st = CIStore(**app.config['REDIS'])
 app.store = st
 
-@st.collect('?oh org:hasProduct ?prod')
-def add_product((oh, _, p_uri)):
-    st.execute('sadd', 'frag:products', p_uri)
+
+@st.query(['?_oh org:hasProduct ?prod', '?prod org:id ?prid'])
+def query_products(arg):
+    product_uri = arg.get('prod')
+    product_name = arg.get('prid')
+    st.execute('sadd', 'frag:products', product_uri)
+    st.execute('set', 'frag:products:{}:'.format(product_name), product_uri)
+    st.execute('hset', 'frag:products:-{}-:'.format(product_uri), 'name', product_name)
 
 
-@st.collect('?prod org:id ?prod_id')
-def add_product_id((p_uri, _, pid)):
-    st.execute('set', 'frag:products:{}:'.format(pid.toPython()), p_uri)
-    st.execute('hset', 'frag:products:-{}-:'.format(p_uri), 'name', pid.toPython())
-
-
-@st.collect('?oh org:hasProject ?proj')
-def add_project((oh, _, p_uri)):
-    st.execute('sadd', 'frag:projects', p_uri)
-
-
-@st.collect('?proj org:id ?proj_id')
-def add_project_id((p_uri, _, pid)):
-    st.execute('set', 'frag:projects:{}:'.format(pid.toPython()), p_uri)
-    st.execute('hset', 'frag:projects:-{}-:'.format(p_uri), 'name', pid.toPython())
-
-
-@st.collect('?proj doap:repository ?repo')
-def link_project_repo((pr_uri, _, r_uri)):
-    repo_name = urlparse.urlparse(r_uri).path.split('/').pop(-1)
-    st.execute('sadd', 'frag:projects:-{}-:repos'.format(pr_uri),
+@st.query(['?_oh org:hasProject ?proj', '?proj org:id ?pjid', '?proj doap:repository ?repo'])
+def query_projects(arg):
+    project_uri = arg.get('proj')
+    project_name = arg.get('pjid')
+    st.execute('sadd', 'frag:projects', project_uri)
+    st.execute('set', 'frag:projects:{}:'.format(project_name), project_uri)
+    st.execute('hset', 'frag:projects:-{}-:'.format(project_uri), 'name', project_name)
+    repo_name = urlparse.urlparse(arg.get('repo')).path.split('/').pop(-1)
+    st.execute('sadd', 'frag:projects:-{}-:repos'.format(project_uri),
                repo_name)
 
 
-@st.collect('?prod org:relatesToProject ?lproj')
-def add_project((prod_uri, _, proj_uri)):
-    st.execute('sadd', 'frag:products:-{}-:projects'.format(prod_uri), proj_uri)
-    st.execute('sadd', 'frag:projects:-{}-:products'.format(proj_uri), prod_uri)
+@st.query(['?prod org:relatesToProject ?proj'])
+def add_project(arg):
+    st.execute('sadd', 'frag:products:-{}-:projects'.format(arg.get('prod')), arg.get('proj'))
+    st.execute('sadd', 'frag:projects:-{}-:products'.format(arg.get('proj')), arg.get('prod'))
 
 
 @st.collect('?h ci:hasBuild ?b')
