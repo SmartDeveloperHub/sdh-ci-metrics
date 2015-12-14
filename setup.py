@@ -28,7 +28,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="SDH-CI-Metrics",
-    version="0.2.2",
+    version="0.2.3",
     author="Fernando Serena",
     author_email="fernando.serena@centeropenmiddleware.com",
     description="A service that calculates a small set of quantitative metrics on data from Jenkins.",

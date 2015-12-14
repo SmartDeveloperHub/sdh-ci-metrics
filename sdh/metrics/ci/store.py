@@ -209,3 +209,6 @@ class CIStore(FragmentStore):
         repo_names = self.db.smembers('frag:projects:-{}-:repos'.format(project_uri))
         repo_uris = map(lambda x: self.db.get('frag:reponames:{}:'.format(x)), repo_names)
         return map(lambda x: self.db.hget('frag:repos:-{}-:'.format(x), 'id'), repo_uris)
+
+    def get_product_repositories(self, prid):
+        return list(set(flat_sum(map(lambda x: self.get_project_repositories(x), self.get_product_projects(prid)))))

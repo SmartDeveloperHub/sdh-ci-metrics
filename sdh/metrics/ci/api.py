@@ -110,7 +110,7 @@ def get_total_failed_repo_executions(rid, **kwargs):
 
 @app.metric('/repository-success-rate', id='repository-success-rate', title='Success rate',
             parameters=[SCM.Repository])
-def get_repo_executions_success_rate(rid, **kwargs):
+def get_repository_success_rate(rid, **kwargs):
     passed_ctx, passed = aggregate(store, 'metrics:total-passed-repo-jobs:{}'.format(rid), kwargs['begin'],
                                    kwargs['end'],
                                    kwargs['max'])
@@ -123,6 +123,35 @@ def get_repo_executions_success_rate(rid, **kwargs):
     return total_ctx, rate
 
 
+@app.metric('/project-success-rate', id='project-success-rate', title='Success rate',
+            parameters=[ORG.Project])
+def get_project_success_rate(pjid, **kwargs):
+    passed_ctx, passed = aggregate(store, 'metrics:total-passed-project-jobs:{}'.format(pjid), kwargs['begin'],
+                                   kwargs['end'],
+                                   kwargs['max'])
+
+    total_ctx, total = aggregate(store, 'metrics:total-project-jobs:{}'.format(pjid), kwargs['begin'], kwargs['end'],
+                                 kwargs['max'])
+
+    # When there are no executions (t == 0), rate should be equal to 1??
+    rate = [float(r) / float(t) if t else 0 for r, t in zip(passed, total)]
+    return total_ctx, rate
+
+
+@app.metric('/product-success-rate', id='product-success-rate', title='Success rate',
+            parameters=[ORG.Product])
+def get_product_success_rate(pjid, **kwargs):
+    passed_ctx, passed = aggregate(store, 'metrics:total-passed-product-jobs:{}'.format(pjid), kwargs['begin'],
+                                   kwargs['end'],
+                                   kwargs['max'])
+
+    total_ctx, total = aggregate(store, 'metrics:total-product-jobs:{}'.format(pjid), kwargs['begin'], kwargs['end'],
+                                 kwargs['max'])
+
+    # When there are no executions (t == 0), rate should be equal to 1??
+    rate = [float(r) / float(t) if t else 0 for r, t in zip(passed, total)]
+    return total_ctx, rate
+
 @app.metric('/repo-build-time', id='repository-buildtime', parameters=[SCM.Repository], title='Build time')
 def get_repo_build_time(rid, **kwargs):
     total = store.get_repo_build_time(rid, begin=kwargs['begin'], end=kwargs['end'])
@@ -130,6 +159,31 @@ def get_repo_build_time(rid, **kwargs):
         return []
     return [total]
 
+
+@app.metric('/project-build-time', id='project-buildtime', title='Build time', parameters=[ORG.Project])
+def get_project_build_time(pjid, **kwargs):
+    begin = kwargs['begin']
+    if begin is None:
+        begin = 0
+    end = kwargs['end']
+    if end is None:
+        end = calendar.timegm(datetime.now().timetuple())
+
+    return {}, [
+        sum([store.get_repo_build_time(rid, begin=begin, end=end) for rid in store.get_project_repositories(pjid)])]
+
+
+@app.metric('/product-build-time', id='product-buildtime', title='Build time', parameters=[ORG.Product])
+def get_product_build_time(prid, **kwargs):
+    begin = kwargs['begin']
+    if begin is None:
+        begin = 0
+    end = kwargs['end']
+    if end is None:
+        end = calendar.timegm(datetime.now().timetuple())
+
+    return {}, [
+        sum([store.get_repo_build_time(rid, begin=begin, end=end) for rid in store.get_product_repositories(prid)])]
 
 @app.metric('/avg-build-time', aggr='avg', id='buildtime', title='Build time')
 def get_avg_build_time(**kwargs):
@@ -167,6 +221,30 @@ def get_repo_broken_time(rid, **kwargs):
     return {'begin': begin, 'end': end}, [store.get_broken_time(rid, begin=begin, end=end)]
 
 
+@app.metric('/project-broken-time', id='project-brokentime', title='Broken time', parameters=[ORG.Project])
+def get_project_broken_time(pjid, **kwargs):
+    begin = kwargs['begin']
+    if begin is None:
+        begin = 0
+    end = kwargs['end']
+    if end is None:
+        end = calendar.timegm(datetime.now().timetuple())
+
+    return {}, [sum([store.get_broken_time(rid, begin=begin, end=end) for rid in store.get_project_repositories(pjid)])]
+
+
+@app.metric('/product-broken-time', id='product-brokentime', title='Broken time', parameters=[ORG.Product])
+def get_product_broken_time(prid, **kwargs):
+    begin = kwargs['begin']
+    if begin is None:
+        begin = 0
+    end = kwargs['end']
+    if end is None:
+        end = calendar.timegm(datetime.now().timetuple())
+
+    return {}, [sum([store.get_broken_time(rid, begin=begin, end=end) for rid in store.get_product_repositories(prid)])]
+
+
 @app.metric('/repo-time-to-fix', aggr='avg', id='repository-timetofix', title='Time to fix',
             parameters=[SCM.Repository])
 def get_repo_time_to_fix(rid, **kwargs):
@@ -177,7 +255,7 @@ def get_repo_time_to_fix(rid, **kwargs):
     if end is None:
         end = calendar.timegm(datetime.now().timetuple())
 
-    return [store.get_time_to_fix(rid, begin=begin, end=end)]
+    return {}, [store.get_time_to_fix(rid, begin=begin, end=end)]
 
 
 @app.metric('/time-to-fix', aggr='avg', id='timetofix', title='Time to fix')
@@ -189,7 +267,7 @@ def get_time_to_fix(**kwargs):
     if end is None:
         end = calendar.timegm(datetime.now().timetuple())
 
-    return [avg([store.get_time_to_fix(rid, begin=begin, end=end) for rid in store.get_repositories()])]
+    return {}, [avg([store.get_time_to_fix(rid, begin=begin, end=end) for rid in store.get_repositories()])]
 
 
 @app.metric('/project-time-to-fix', aggr='avg', id='project-timetofix', title='Time to fix', parameters=[ORG.Project])
@@ -201,7 +279,7 @@ def get_project_time_to_fix(pjid, **kwargs):
     if end is None:
         end = calendar.timegm(datetime.now().timetuple())
 
-    return [avg([store.get_time_to_fix(rid, begin=begin, end=end) for rid in store.get_project_repositories(pjid)])]
+    return {}, [avg([store.get_time_to_fix(rid, begin=begin, end=end) for rid in store.get_project_repositories(pjid)])]
 
 
 @app.metric('/product-time-to-fix', aggr='avg', id='product-timetofix', title='Time to fix', parameters=[ORG.Product])
@@ -213,20 +291,21 @@ def get_product_time_to_fix(prid, **kwargs):
     if end is None:
         end = calendar.timegm(datetime.now().timetuple())
 
-    return [avg([store.get_time_to_fix(rid, begin=begin, end=end) for rid in store.get_product_repositories(prid)])]
+    return {}, [
+        avg([store.get_time_to_fix(rid, begin=begin, end=end) for rid in store.get_product_repositories(prid)])]
 
 
 @app.metric('/total-product-builds', id='product-builds', title='Builds', parameters=[ORG.Product])
 def get_product_builds(prid, **kwargs):
     projects = store.get_product_projects(prid)
     repo_ids = flat_sum(map(lambda x: store.get_project_repositories(x), projects))
-    return sum(map(lambda x: len(store.get_repo_builds(x)), repo_ids))
+    return {}, [sum(map(lambda x: len(store.get_repo_builds(x)), repo_ids))]
 
 
 @app.metric('/total-project-builds', id='project-builds', title='Builds', parameters=[ORG.Project])
 def get_project_builds(pjid, **kwargs):
     repo_ids = store.get_project_repositories(pjid)
-    return sum(map(lambda x: len(store.get_repo_builds(x)), repo_ids))
+    return {}, [sum(map(lambda x: len(store.get_repo_builds(x)), repo_ids))]
 
 
 @app.metric('/total-product-executions', id='product-executions', title='Executions', parameters=[ORG.Product])
