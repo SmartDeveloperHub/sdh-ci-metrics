@@ -160,16 +160,17 @@ class CIStore(FragmentStore):
             for job in jobs:
                 result = self.db.get('frag:jobs:-{}-:result'.format(job))
                 verdict = self.db.get('frag:results:-{}-:'.format(result))
-                if last_verdict == 'passed' and last_verdict not in verdict:
-                    build_broken_since = int(self.db.get('frag:jobs:-{}-:finished'.format(job)))
-                elif last_verdict == 'failed' and last_verdict in verdict:
-                    next_broken_timestamp = int(self.db.get('frag:jobs:-{}-:finished'.format(job)))
-                    interval_broken_time = next_broken_timestamp - build_broken_since
-                elif last_verdict == 'failed' and last_verdict not in verdict:
-                    next_pass_timestamp = int(self.db.get('frag:jobs:-{}-:finished'.format(job)))
-                    build_broken_time += (next_pass_timestamp - build_broken_since)
-                    interval_broken_time = 0
-                last_verdict = verdict.split('#')[1]
+                if verdict is not None:
+                    if last_verdict == 'passed' and last_verdict not in verdict:
+                        build_broken_since = int(self.db.get('frag:jobs:-{}-:finished'.format(job)))
+                    elif last_verdict == 'failed' and last_verdict in verdict:
+                        next_broken_timestamp = int(self.db.get('frag:jobs:-{}-:finished'.format(job)))
+                        interval_broken_time = next_broken_timestamp - build_broken_since
+                    elif last_verdict == 'failed' and last_verdict not in verdict:
+                        next_pass_timestamp = int(self.db.get('frag:jobs:-{}-:finished'.format(job)))
+                        build_broken_time += (next_pass_timestamp - build_broken_since)
+                        interval_broken_time = 0
+                    last_verdict = verdict.split('#')[1]
             if last_verdict == 'failed':
                 build_broken_time += interval_broken_time
             repo_broken_time += build_broken_time
