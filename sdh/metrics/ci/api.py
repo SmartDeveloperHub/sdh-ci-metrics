@@ -52,7 +52,7 @@ def get_total_executions(**kwargs):
     return aggregate(store, 'metrics:total-jobs', kwargs['begin'], kwargs['end'], kwargs['max'])
 
 
-@app.metric('/total-passed-builds', id='passed-builds', title='Builds')
+@app.metric('/total-passed-builds', id='passed-builds', title='Passed builds')
 def get_total_passed_builds(**kwargs):
     success_builds = 0
     for build in store.get_builds():
@@ -62,7 +62,7 @@ def get_total_passed_builds(**kwargs):
     return {}, [success_builds]
 
 
-@app.metric('/total-failed-builds', id='failed-builds', title='Builds')
+@app.metric('/total-failed-builds', id='failed-builds', title='Failed builds')
 def get_total_failed_builds(**kwargs):
     failed_builds = 0
     for build in store.get_builds():
@@ -72,12 +72,12 @@ def get_total_failed_builds(**kwargs):
     return {}, [failed_builds]
 
 
-@app.metric('/total-passed-executions', id='passed-executions', title='Executions')
+@app.metric('/total-passed-executions', id='passed-executions', title='Passed executions')
 def get_total_passed_executions(**kwargs):
     return aggregate(store, 'metrics:total-passed-jobs', kwargs['begin'], kwargs['end'], kwargs['max'])
 
 
-@app.metric('/total-failed-executions', id='failed-executions', title='Executions')
+@app.metric('/total-failed-executions', id='failed-executions', title='Failed executions')
 def get_total_failed_executions(**kwargs):
     return aggregate(store, 'metrics:total-failed-jobs', kwargs['begin'], kwargs['end'], kwargs['max'])
 
@@ -94,14 +94,14 @@ def get_avg_repo_executions(rid, **kwargs):
                      aggr=avg)
 
 
-@app.metric('/total-passed-repo-executions', id='passed-repository-executions', title='Executions',
+@app.metric('/total-passed-repo-executions', id='passed-repository-executions', title='Passed executions',
             parameters=[SCM.Repository])
 def get_total_passed_repo_executions(rid, **kwargs):
     return aggregate(store, 'metrics:total-passed-repo-jobs:{}'.format(rid), kwargs['begin'], kwargs['end'],
                      kwargs['max'])
 
 
-@app.metric('/total-failed-repo-executions', id='failed-repository-executions', title='Executions',
+@app.metric('/total-failed-repo-executions', id='failed-repository-executions', title='Failed executions',
             parameters=[SCM.Repository])
 def get_total_failed_repo_executions(rid, **kwargs):
     return aggregate(store, 'metrics:total-failed-repo-jobs:{}'.format(rid), kwargs['begin'], kwargs['end'],
@@ -332,14 +332,14 @@ def get_project_passed_executions(prid, **kwargs):
                      kwargs['max'])
 
 
-@app.metric('/total-failed-product-executions', id='failed-product-executions', title='Executions',
+@app.metric('/total-failed-product-executions', id='failed-product-executions', title='Failed executions',
             parameters=[ORG.Product])
 def get_product_failed_executions(prid, **kwargs):
     return aggregate(store, 'metrics:total-failed-product-jobs:{}'.format(prid), kwargs['begin'], kwargs['end'],
                      kwargs['max'])
 
 
-@app.metric('/total-failed-project-executions', id='failed-project-executions', title='Executions',
+@app.metric('/total-failed-project-executions', id='failed-project-executions', title='Failed executions',
             parameters=[ORG.Project])
 def get_project_failed_executions(prid, **kwargs):
     return aggregate(store, 'metrics:total-failed-project-jobs:{}'.format(prid), kwargs['begin'], kwargs['end'],
